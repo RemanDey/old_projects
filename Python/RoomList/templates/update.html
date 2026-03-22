@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Update — {{ name }}</h1>
+
+  <div class="card formcard">
+    <form id="updateForm">
+      <label>
+        <input type="checkbox" id="presentChk" />
+        Present in room right now
+      </label>
+
+      <label for="note">Note (optional)</label>
+      <textarea id="note" rows="4" placeholder="Leave a short note..."></textarea>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save</button>
+        <a class="btn" href="{{ url_for('dashboard') }}">Back to dashboard</a>
+      </div>
+
+      <p id="msg" class="msg"></p>
+    </form>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const name = {{ name|tojson }};
+  const presentChk = document.getElementById("presentChk");
+  const noteEl = document.getElementById("note");
+  const msg = document.getElementById("msg");
+  const form = document.getElementById("updateForm");
+
+  async function load() {
+    try {
+      const res = await fetch(`/api/status/${encodeURIComponent(name)}`);
+      const data = await res.json();
+      presentChk.checked = data.present;
+      noteEl.value = data.note || "";
+    } catch (e) {
+      msg.textContent = "Failed to load current status.";
+      msg.classList.add("error");
+    }
+  }
+
+  form.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    msg.textContent = "Saving...";
+    msg.classList.remove("error","success");
+    try {
+      const payload = {
+        name: name,
+        present: presentChk.checked,
+        note: noteEl.value
+      };
+      const res = await fetch("/api/update", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        msg.textContent = "Saved. Total present: " + data.total_present;
+        msg.classList.add("success");
+        // optionally redirect back to dashboard after 1s:
+        setTimeout(()=> window.location.href = "/", 900);
+      } else {
+        msg.textContent = data.error || "Failed to save.";
+        msg.classList.add("error");
+      }
+    } catch (err) {
+      console.error(err);
+      msg.textContent = "Network error while saving.";
+      msg.classList.add("error");
+    }
+  });
+
+  load();
+});
+</script>
+{% endblock %}

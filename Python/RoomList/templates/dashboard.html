@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Dashboard</h1>
+
+  <section id="summary" class="card">
+    <h2 id="total">Total present: —</h2>
+  </section>
+
+  <section id="people" class="grid">
+    <!-- JS will populate -->
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // dashboard-specific init
+  document.addEventListener("DOMContentLoaded", () => {
+    const peopleEl = document.getElementById("people");
+    const totalEl = document.getElementById("total");
+
+    async function refresh() {
+      try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+        peopleEl.innerHTML = "";
+        for (const [name, info] of Object.entries(data.people)) {
+          const card = document.createElement("div");
+          card.className = "person card";
+          card.innerHTML = `
+            <h3>${name}</h3>
+            <p><strong>Status:</strong> <span class="status">${info.present ? "In room" : "Away"}</span></p>
+            <p><strong>Note:</strong> <span class="note">${(info.note || "").replace(/\n/g,"<br>")}</span></p>
+            <div class="actions">
+              <a class="btn" href="/update/${encodeURIComponent(name)}">Update</a>
+            </div>
+          `;
+          peopleEl.appendChild(card);
+        }
+        totalEl.textContent = `Total present: ${data.total_present}`;
+      } catch (err) {
+        console.error(err);
+        peopleEl.innerHTML = "<p class='error'>Failed to load data.</p>";
+      }
+    }
+
+    refresh();
+
+    // optional: poll every 20s for live updates
+    setInterval(refresh, 20000);
+  });
+</script>
+{% endblock %}

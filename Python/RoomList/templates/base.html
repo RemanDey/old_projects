@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Hostel Room Tracker</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="topnav">
+    <a href="{{ url_for('dashboard') }}" class="brand">Room Tracker</a>
+    <div class="navlinks">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('update_page', name='Reman') }}">Reman</a>
+      <a href="{{ url_for('update_page', name='Sourav') }}">Sourav</a>
+      <a href="{{ url_for('update_page', name='Sannat') }}">Sannat</a>
+      <a href="{{ url_for('update_page', name='Ruthwik') }}">Ruthwik</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <p>© 2025 Reman Dey. All rights reserved.</p>
+  </footer>
+
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

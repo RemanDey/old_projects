@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Send Camera to Flask</title>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"
+    integrity="sha384-..." crossorigin="anonymous"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 10px; }
+    video, canvas { border: 1px solid #ccc; max-width: 100%; }
+    #controls { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Send your webcam to the server</h2>
+
+  <video id="video" autoplay playsinline muted></video><br>
+  <div id="controls">
+    <label>Frame interval (ms): <input id="interval" value="200" /></label>
+    <label>Width: <input id="width" value="640" /></label>
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+  </div>
+
+  <script>
+    const socket = io(); // auto connects to the same host/port
+    const video = document.getElementById('video');
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const intervalInput = document.getElementById('interval');
+    const widthInput = document.getElementById('width');
+
+    let stream = null;
+    let sending = false;
+    let timer = null;
+
+    async function startCapture() {
+      // getUserMedia only works on https or localhost
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("Could not access camera: " + err.message);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      sending = true;
+
+      function sendFrame() {
+        if (!sending) return;
+        const w = parseInt(widthInput.value) || 640;
+        const h = Math.round(video.videoHeight / (video.videoWidth || 1) * w) || 480;
+        canvas.width = w;
+        canvas.height = h;
+        ctx.drawImage(video, 0, 0, w, h);
+        // You can change quality param (0.7) lower for smaller size
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        // send the data URL to server
+        socket.emit('frame', { b64: dataUrl });
+      }
+
+      const intervalMs = Math.max(20, parseInt(intervalInput.value) || 200);
+      timer = setInterval(sendFrame, intervalMs);
+      // also send the first frame immediately
+      sendFrame();
+    }
+
+    function stopCapture() {
+      sending = false;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      if (stream) {
+        // stop all tracks
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+    }
+
+    startBtn.onclick = () => { if (!sending) startCapture(); };
+    stopBtn.onclick = () => { stopCapture(); };
+
+    // Close gracefully when user leaves
+    window.addEventListener('beforeunload', () => {
+      stopCapture();
+    });
+  </script>
+</body>
+</html>
